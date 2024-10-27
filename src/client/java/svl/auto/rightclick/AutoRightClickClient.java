@@ -1,5 +1,7 @@
 package svl.auto.rightclick;
 
+import com.sun.jna.Library;
+import com.sun.jna.Native;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
@@ -16,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 
 
 public class AutoRightClickClient implements ClientModInitializer {
-	private boolean isCapsLockActive = false;
 	private Robot robot;
 	MinecraftClient client = null;
 
@@ -37,20 +38,12 @@ public class AutoRightClickClient implements ClientModInitializer {
 
 		// Проверка состояния CAPS LOCK при запуске мода
 		client = MinecraftClient.getInstance();
-		try {
-			isCapsLockActive = Toolkit.getDefaultToolkit().getLockingKeyState(KeyEvent.VK_CAPS_LOCK);
-		} catch (UnsupportedOperationException e) {
-			e.printStackTrace(); // Обработка исключения, если метод не поддерживается
-		}
+
 
 		// Создаем планировщик задач для кликов мыши
 		ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 		scheduler.scheduleAtFixedRate(() -> {
-			if (capsLockKeyBinding.wasPressed()) {
-				isCapsLockActive = !isCapsLockActive;
-			}
-
-			if (isCapsLockActive && isGameFocused() && client.player != null && client.player.isAlive()) {
+			if (isCapsLockActive() && isGameFocused() && client.player != null && client.player.isAlive()) {
 				robot.mousePress(InputEvent.BUTTON3_DOWN_MASK);
 				robot.mouseRelease(InputEvent.BUTTON3_DOWN_MASK);
 			}
@@ -60,5 +53,15 @@ public class AutoRightClickClient implements ClientModInitializer {
 
 	public boolean isGameFocused() {
 		return client != null && client.isWindowFocused();
+	}
+
+	public interface User32 extends Library {
+		User32 INSTANCE = Native.load("user32", User32.class);
+		int GetKeyState(int nVirtKey);
+	}
+
+	public static boolean isCapsLockActive() {
+		// CAPS LOCK имеет виртуальный код 0x14
+		return (User32.INSTANCE.GetKeyState(0x14) & 0x0001) != 0;
 	}
 }
