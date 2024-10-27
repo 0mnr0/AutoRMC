@@ -50,7 +50,7 @@ public class AutoRightClickClient implements ClientModInitializer {
 				isCapsLockActive = !isCapsLockActive;
 			}
 
-			if (isCapsLockActive && isGameFocused()) {
+			if (isCapsLockActive && isGameFocused() && client.player != null && client.player.isAlive()) {
 				robot.mousePress(InputEvent.BUTTON3_DOWN_MASK);
 				robot.mouseRelease(InputEvent.BUTTON3_DOWN_MASK);
 			}
