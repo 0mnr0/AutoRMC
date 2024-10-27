@@ -47,7 +47,7 @@ public class AutoRightClickClient implements ClientModInitializer {
 				robot.mousePress(InputEvent.BUTTON3_DOWN_MASK);
 				robot.mouseRelease(InputEvent.BUTTON3_DOWN_MASK);
 			}
-		}, 0, 24, TimeUnit.MILLISECONDS); // Интервал 24 миллисекунды
+		}, 0, 30, TimeUnit.MILLISECONDS); // Интервал 24 миллисекунды
 	}
 
 
