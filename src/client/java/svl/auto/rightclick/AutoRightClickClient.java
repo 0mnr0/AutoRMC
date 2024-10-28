@@ -2,32 +2,42 @@ package svl.auto.rightclick;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.terraformersmc.modmenu.api.ConfigScreenFactory;
+import com.terraformersmc.modmenu.api.ModMenuApi;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.AccessibilityOnboardingScreen;
-import net.minecraft.client.option.KeyBinding;
-import org.lwjgl.glfw.GLFW;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class AutoRightClickClient implements ClientModInitializer {
-	private Robot robot;
-	MinecraftClient client = null;
+public class AutoRightClickClient implements ClientModInitializer, ModMenuApi {
+	static int clickTimeout = 30;
+	static Timer clickTimer;
+	ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+	ScheduledFuture<?> clickTask; // Переменная для отслеживания текущей задачи
+
+	public static void openConfigScreen() {
+		MinecraftClient.getInstance().setScreen(ModConfigScreen.getConfigScreen(null));
+	}
+
+	@Override
+	public ConfigScreenFactory<?> getModConfigScreenFactory() {
+		return parent -> ModConfigScreen.getConfigScreen(parent); // Указываем экран настроек
+	}
+
+	private static Robot robot;
+	static MinecraftClient client = null;
 
 	public void onInitializeClient() {
 		System.setProperty("java.awt.headless", "false");
-		KeyBinding capsLockKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-				"key.capslockmod.capslock",
-				GLFW.GLFW_KEY_CAPS_LOCK,
-				"key.categories.misc"
-		));
 
 		try {
 			robot = new Robot(); // Инициализация Robot для эмуляции кликов мыши
@@ -39,19 +49,37 @@ public class AutoRightClickClient implements ClientModInitializer {
 		// Проверка состояния CAPS LOCK при запуске мода
 		client = MinecraftClient.getInstance();
 
-
 		// Создаем планировщик задач для кликов мыши
-		ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-		scheduler.scheduleAtFixedRate(() -> {
-			if (isCapsLockActive() && isGameFocused() && client.player != null && client.player.isAlive()) {
-				robot.mousePress(InputEvent.BUTTON3_DOWN_MASK);
-				robot.mouseRelease(InputEvent.BUTTON3_DOWN_MASK);
+
+
+		setClickTimeout(clickTimeout);
+	}
+
+	// Метод для обновления таймера с новым интервалом
+	static void updateClickTimer() {
+		if (clickTimer != null) {
+			clickTimer.cancel(); // Останавливаем старый таймер
+		}
+
+		clickTimer = new Timer();
+		clickTimer.scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				if (isCapsLockActive() && isGameFocused() && client.player != null && client.player.isAlive()) {
+					robot.mousePress(InputEvent.BUTTON3_DOWN_MASK);
+					robot.mouseRelease(InputEvent.BUTTON3_DOWN_MASK);
+				}
 			}
-		}, 0, 30, TimeUnit.MILLISECONDS); // Интервал 24 миллисекунды
+		}, 0, clickTimeout);
+	}
+
+	static void setClickTimeout(int newTimeout) {
+		clickTimeout = newTimeout;
+		updateClickTimer(); // Перезапускаем таймер с новым интервалом
 	}
 
 
-	public boolean isGameFocused() {
+	public static boolean isGameFocused() {
 		return client != null && client.isWindowFocused();
 	}
 
@@ -64,4 +92,5 @@ public class AutoRightClickClient implements ClientModInitializer {
 		// CAPS LOCK имеет виртуальный код 0x14
 		return (User32.INSTANCE.GetKeyState(0x14) & 0x0001) != 0;
 	}
+
 }
