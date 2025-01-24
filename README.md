@@ -8,4 +8,4 @@ This version partially supports Mod Menu (spped blocks placing only, not saving 
 
 
 If you are using version that are lower than 1.20:
-## [Download here (1.14.4)](https://github.com/0mnr0/AutoRMC-0/releases)
+## [Download here (1.14.4)](https://github.com/0mnr0/AutoRMC-O/releases)
